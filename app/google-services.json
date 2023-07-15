@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "636178499183",
+    "project_id": "ppr214-drone-app-a281f",
+    "storage_bucket": "ppr214-drone-app-a281f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:636178499183:android:3a6d46da411bb60672ef9a",
+        "android_client_info": {
+          "package_name": "com.mainapp.droneapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "636178499183-tesq39o1bs4dv7of0br6tn9ink6lj38i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByLSL8h76Y7BGPgS1tDKEj3jHBY9-D7mw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "636178499183-tesq39o1bs4dv7of0br6tn9ink6lj38i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
