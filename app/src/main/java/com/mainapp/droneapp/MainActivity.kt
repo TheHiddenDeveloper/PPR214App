@@ -1,16 +1,25 @@
 package com.mainapp.droneapp
 
 import android.annotation.SuppressLint
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothServerSocket
+import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.mainapp.droneapp.databinding.DroneControlBinding
 import io.github.controlwear.virtual.joystick.android.JoystickView
 import kotlinx.coroutines.*
+import java.io.IOException
+import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
@@ -19,7 +28,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var myBluetooth: MyBluetooth
 
     private val _tag = MainActivity::class.qualifiedName
-
+    private val _myUUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
+    private val REQUEST_BLUETOOTH_PERMISSION = 100
     private var joystickJob: Job? = null
     private var throttleJob: Job? = null
     private val THROTTLE_INCREMENT = 5
@@ -31,6 +41,22 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(_tag, "Starting...")
+
+        // Check if Bluetooth permission is granted
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startBluetoothServer()
+        } else {
+            // Request Bluetooth permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.BLUETOOTH),
+                REQUEST_BLUETOOTH_PERMISSION
+            )
+        }
 
         myBluetooth = MyBluetooth(this)
 
@@ -239,4 +265,58 @@ class MainActivity : AppCompatActivity() {
         Log.d("MainActivity", "Throttle Decreased: $throttle")
         myBluetooth.writeData("S")
     }
+
+    private fun startBluetoothServer() {
+    val adapter = BluetoothAdapter.getDefaultAdapter()
+    if (ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.BLUETOOTH_CONNECT
+        ) != PackageManager.PERMISSION_GRANTED
+    ) {
+        // Request Bluetooth permission
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+            REQUEST_BLUETOOTH_PERMISSION
+        )
+    } else {
+        val serverSocket: BluetoothServerSocket? =
+            adapter?.listenUsingRfcommWithServiceRecord(
+                "BluetoothServer",
+                UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+            )
+        var socket: BluetoothSocket? = null
+        try {
+            println("Waiting for connection...")
+            socket = serverSocket?.accept()
+            println("Connection established")
+             // Handle the Bluetooth connection
+            // ...
+        } catch (e: IOException) {
+            e.printStackTrace()
+        } finally {
+            try {
+                socket?.close()
+                serverSocket?.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+}
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_BLUETOOTH_PERMISSION) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startBluetoothServer()
+            } else {
+                // Handle permission denied
+            }
+        }
+    }
+
 }

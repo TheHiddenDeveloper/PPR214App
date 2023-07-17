@@ -1,6 +1,4 @@
-
 package com.mainapp.droneapp
-
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
@@ -9,31 +7,18 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import java.io.IOException
-import java.io.InputStream
-import java.util.*
-
+import java.util.UUID
 
 class MyBluetooth(private val appCompatActivity: AppCompatActivity) {
     private var bluetoothAdapter: BluetoothAdapter
     private lateinit var btSocket : BluetoothSocket
     private val deviceAddress ="00:22:09:01:13:0A"
-
-    // Serial port UUID
-    // https://stackoverflow.com/questions/4632524/how-to-find-the-uuid-of-serial-port-bluetooth-device
-    //"00001101-0000-1000-8000-00805f9b34fb"
     private val _myUUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
-
-    // Tag for debug info
-    private val _tag = MyBluetooth::class.qualifiedName
-
-
-    // ActivityResultLauncher for requesting BT permissions with API < 33
     private var requestBluetooth = appCompatActivity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == AppCompatActivity.RESULT_OK) {
             //granted
@@ -41,21 +26,15 @@ class MyBluetooth(private val appCompatActivity: AppCompatActivity) {
             //deny
         }
     }
-
-    // ActivityResultLauncher for requesting BT permissions with API >= 33
     private val requestMultiplePermissions =
         appCompatActivity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             permissions.entries.forEach {
-                Log.d(_tag, "${it.key} = ${it.value}")
             }
         }
-
     init {
-        //requestBTPermissions() // Seems not necessary here. Will be done later when needed.
         val bluetoothManager = appCompatActivity.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
     }
-
     private fun requestBTPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             requestMultiplePermissions.launch(arrayOf(
@@ -69,26 +48,20 @@ class MyBluetooth(private val appCompatActivity: AppCompatActivity) {
             requestBluetooth.launch(enableBtIntent)
         }
     }
-
     private var _isConnected : Boolean = false
     val isConnected : Boolean
         get() {
             _isConnected = this::btSocket.isInitialized && btSocket.isConnected
             return _isConnected
         }
-
     fun connect(): Boolean {
-        // Address discovered with 3rd party Bluetooth Scanner app
-        // Probably unique address for each HC-05 device.
         val device = bluetoothAdapter.getRemoteDevice(deviceAddress)
-        Log.d(_tag, "Connecting to ... $device")
         Toast.makeText(appCompatActivity.applicationContext, "Connecting...", Toast.LENGTH_SHORT).show()
         if (ActivityCompat.checkSelfPermission(
                 appCompatActivity,
                 Manifest.permission.BLUETOOTH_CONNECT
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // We don't have permissions.
             Toast.makeText(
                 appCompatActivity.applicationContext,
                 "BLUETOOTH_CONNECT permission is not granted! Please allow, and try again.",
@@ -103,33 +76,22 @@ class MyBluetooth(private val appCompatActivity: AppCompatActivity) {
             Toast.LENGTH_SHORT
         ).show()
         bluetoothAdapter.cancelDiscovery()
-
-        // Establish connection
         try {
             btSocket = device.createRfcommSocketToServiceRecord(_myUUID)
-            /* Here is the part the connection is made, by asking the device to create a RfcommSocket
-            (Unsecure socket I guess), It map a port for us or something like that */
             btSocket.connect()
-            Log.d(_tag, "Connection made.")
             Toast.makeText(appCompatActivity.applicationContext, "Connection made.", Toast.LENGTH_SHORT).show()
             return true
         } catch (e: IOException) {
             try {
                 btSocket.close()
             } catch (e2: IOException) {
-                Log.d(_tag, "Unable to end the connection.\n" + e2.message)
                 Toast.makeText(appCompatActivity.applicationContext, "Unable to end the connection.", Toast.LENGTH_SHORT).show()
                 return false
             }
-
-            Log.d(_tag, "Socket creation failed.\n" + e.message)
             Toast.makeText(appCompatActivity.applicationContext, "Socket creation failed.", Toast.LENGTH_SHORT).show()
             return false
         }
     }
-
-
-
     fun writeData(data: String): Boolean {
         if (!isConnected)
             return false
@@ -137,45 +99,58 @@ class MyBluetooth(private val appCompatActivity: AppCompatActivity) {
         try {
             outStream = btSocket.outputStream
         } catch (e: IOException) {
-            Log.d(_tag, "Error before sending stuff", e)
             return false
         }
         val msgBuffer = data.toByteArray()
-
         try {
             outStream.write(msgBuffer)
         } catch (e: IOException) {
-            Log.d(_tag, "Error while sending stuff", e)
             return false
         }
         return true
     }
-
-   /* fun readBatteryLevel(): String {
-        if (!is_Connected())
-            return ""
-
-        var inStream: InputStream? = null
-        var receivedData = ""
-
-        try {
-            inStream = btSocket?.inputStream
-            val buffer = ByteArray(1024)
-            val bytesRead = inStream?.read(buffer) ?: -1
-            if (bytesRead != -1) {
-                receivedData = String(buffer, 0, bytesRead)
+    /*fun receiveData() {
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Request Bluetooth permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                REQUEST_BLUETOOTH_PERMISSION
+            )
+            // Handle the case where the permission is not granted yet
+            return
+        } else {
+            val serverSocket: BluetoothServerSocket? = adapter?.listenUsingRfcommWithServiceRecord(
+                "BluetoothServer",
+                UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+            )
+            if (serverSocket == null) {
+                // Handle the case where the server socket is null
+                return
             }
-        } catch (e: IOException) {
-            Log.e(_tag, "Error while receiving data", e)
-        } finally {
-            inStream?.close()
-            return receivedData
+            var socket: BluetoothSocket? = null
+            try {
+                println("Waiting for connection...")
+                socket = serverSocket.accept()
+                println("Connection established")
+                // Handle the Bluetooth connection
+                // ...
+            } catch (e: IOException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    socket?.close()
+                    serverSocket.close()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            }
         }
-    }
-
-    private fun is_Connected(): Boolean {
-        return btSocket?.isConnected == true
     }*/
-
+     //private val REQUEST_BLUETOOTH_PERMISSION = 1
 }
-
