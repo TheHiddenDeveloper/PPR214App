@@ -67,7 +67,4 @@ Conclusion:
 
 In summation, the DroneX PPR-214 project exemplifies the harmonious convergence of hardware ingenuity and software artistry.
 The Android app, a masterpiece forged with Kotlin and fortified by coroutines and diverse Android development systems, emerges as a testament to user-centric design for controlling drone systems.
-The project's methodology, underpinned by RF communication facilitated by the HC-05 Bluetooth module, underscores the project team's technical finesse in enabling seamless communication between the app and the drone's hardware suite. 
-The integration of sensors like GPS and devices like ESP32 augments the drone's capabilities, exemplifying the synergy achieved through innovative engineering.
-The DroneX PPR-214 project stands as a beacon of technological innovation, demonstrating how cutting-edge hardware and software can harmonize to create a powerful and user-friendly drone control system.
-As technology propels us forward, this project serves as a testament to the boundless possibilities that emerge from inventive integration.
+.
